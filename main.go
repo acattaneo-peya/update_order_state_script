@@ -35,10 +35,10 @@ type ConfirmStateBody struct {
 
 type ConfirmStateBodyData struct {
 	State             string    `json:"state"`
-	DeliveryTimeID    int       `json:"deliveryTimeId,omitempty"`
-	UserID            int       `json:"userId,omitempty"`
-	ReceptionSystemID int       `json:"receptionSystemId,omitempty"`
-	ResponseDate      time.Time `json:"responseDate,omitempty"`
+	DeliveryTimeID    int       `json:"deliveryTimeId"`
+	UserID            int       `json:"userId"`
+	ReceptionSystemID int       `json:"receptionSystemId"`
+	ResponseDate      time.Time `json:"responseDate"`
 }
 
 type RejectStateBodyData struct {
