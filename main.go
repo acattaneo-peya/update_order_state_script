@@ -57,7 +57,7 @@ func main() {
 	args := os.Args
 
 	messages := make([]Message, 0)
-	err := readCsvFile(fmt.Sprintf("/Users/amilcar.cattaneo/Downloads/script/order_%s.csv", args[1]), &messages)
+	err := readCsvFile(fmt.Sprintf("${file_path}/order_%s.csv", args[1]), &messages)
 	if err != nil {
 		log.Fatalf("error: %v", err)
 		return
@@ -69,7 +69,8 @@ func main() {
 	for _, msg := range messages {
 		err := processMessage(ctx, client, msg)
 		if err != nil {
-			log.Printf("error: %s", err.Error())
+			log.Printf(err.Error())
+			return
 		}
 	}
 }
