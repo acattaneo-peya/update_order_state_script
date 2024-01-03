@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"encoding/csv"
 	"encoding/json"
@@ -57,7 +58,7 @@ func main() {
 	args := os.Args
 
 	messages := make([]Message, 0)
-	err := readCsvFile(fmt.Sprintf("${file_path}/order_%s.csv", args[1]), &messages)
+	err := readCsvFile(fmt.Sprintf("${path}/order_%s.csv", args[1]), &messages)
 	if err != nil {
 		log.Fatalf("error: %v", err)
 		return
@@ -66,12 +67,19 @@ func main() {
 	ctx := context.Background()
 	client := gohttpclient.New("http://localhost:11035/")
 
+	messageWithErrors := make([]Message, 0)
 	for _, msg := range messages {
 		err := processMessage(ctx, client, msg)
 		if err != nil {
 			log.Printf(err.Error())
-			return
+			messageWithErrors = append(messageWithErrors, msg)
 		}
+	}
+
+	err = writeCsvFile(messageWithErrors, args[1])
+	if err != nil {
+		log.Printf(err.Error())
+		return
 	}
 }
 
@@ -91,17 +99,33 @@ func readCsvFile(filePath string, v interface{}) error {
 	return dec.Decode(v)
 }
 
+func writeCsvFile(obj interface{}, arg string) error {
+	var buf bytes.Buffer
+	w := csv.NewWriter(&buf)
+
+	encoder := csvutil.NewEncoder(w)
+
+	if err := encoder.Encode(obj); err != nil {
+		return err
+	}
+
+	w.Flush()
+	if err := w.Error(); err != nil {
+		return err
+	}
+
+	return os.WriteFile(fmt.Sprintf("${path}/errors_%s.csv", arg), buf.Bytes(), 0644)
+}
+
 func processMessage(ctx context.Context, client *gohttpclient.Client, msg Message) error {
 	getResponse, err := client.Get(ctx, fmt.Sprintf("v1/orders/%v/state", msg.ID))
 	if err != nil {
-		log.Printf("error: %v", err)
 		return err
 	}
 
 	var orderState OSState
 	err = getResponse.Unmarshal(&orderState)
 	if err != nil {
-		log.Printf("error: %v", err)
 		return err
 	}
 
@@ -142,7 +166,6 @@ func processMessage(ctx context.Context, client *gohttpclient.Client, msg Messag
 			gohttpclient.WithHeader("Authorization", "X"),
 			gohttpclient.WithHeader("Origin", "postman"))
 		if err != nil {
-			log.Printf("error: %v", err)
 			return err
 		}
 
